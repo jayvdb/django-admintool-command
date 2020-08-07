@@ -2,7 +2,7 @@ import traceback
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib.messages.storage.base import Message
 from django.core.management import call_command
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render
 from django.utils.safestring import mark_safe
 from django.views import View
@@ -16,7 +16,10 @@ class AppCommandView(UserPassesTestMixin, View):
         return self.request.user and self.request.user.is_superuser
 
     def get(self, request, app_name, command):
-        instance = get_command_instance(app_name, command)
+        try:
+            instance = get_command_instance(app_name, command)
+        except Exception:
+            return HttpResponseBadRequest()
         # handle from AdminCommand if has view handler
         if hasattr(instance, "view"):
             return instance.view(request=request, app_name=app_name, command=command)
@@ -28,7 +31,10 @@ class AppCommandView(UserPassesTestMixin, View):
         return HttpResponse(render(request, instance.template, context=context))
 
     def post(self, request, app_name, command):
-        instance = get_command_instance(app_name, command)
+        try:
+            instance = get_command_instance(app_name, command)
+        except Exception:
+            return HttpResponseBadRequest()
         # handle from AdminCommand if has view handler
         if hasattr(instance, "view"):
             return instance.view(request=request, app_name=app_name, command=command)
